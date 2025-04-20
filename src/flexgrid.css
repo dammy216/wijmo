@@ -1,0 +1,19 @@
+.action-button {
+  position: absolute;
+  top: 20%;
+  left: 50%;
+}
+
+.wj-cell.wj-align-right {
+  text-align: center;
+}
+
+.wj-cell.wj-align-left {
+  text-align: center;
+}
+
+.wj-cell.wj-header.wj-align-center {
+  display: flex !important;  
+  justify-content: center !important;
+  align-items: center !important;
+}
