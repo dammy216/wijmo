@@ -7,6 +7,8 @@ import { useEffect, useRef, useState } from 'react';
 import * as wjcGridTransposed from '@mescius/wijmo.grid.transposed';
 import './flexgrid.css';
 
+const myCompanyId: number = 5000;
+
 type GridDisplayModel = {
   companyId: number;
   companyName: string;
@@ -73,9 +75,7 @@ const getEvaluationCompanyData: EvaluationCompany = {
     { hyokaKmkId: 3, hyokaKmkName: '新規技術' },
   ],
   companies: [
-    { companyId: 1, pointInfo: [{ hyokaKmkId: 1, point: 8 }, { hyokaKmkId: 2, point: 2 }, { hyokaKmkId: 3, point: 3 }] },
-    { companyId: 2, pointInfo: [{ hyokaKmkId: 1, point: 4 }, { hyokaKmkId: 2, point: 5 }, { hyokaKmkId: 3, point: 6 }] },
-    { companyId: 3, pointInfo: [{ hyokaKmkId: 1, point: 7 }, { hyokaKmkId: 2, point: 8 }, { hyokaKmkId: 3, point: 9 }] },
+    { companyId: myCompanyId, pointInfo: [{ hyokaKmkId: 1, point: 8 }, { hyokaKmkId: 2, point: 2 }, { hyokaKmkId: 3, point: 3 }] },
   ],
 };
 
@@ -86,26 +86,18 @@ const getEvaluationEngineerData: EvaluationEngineer = {
     { hyokaKmkId: 3, hyokaKmkName: '性格' },
   ],
   engineers: [
-    { companyId: 1, engineerId: 1, pointInfo: [{ hyokaKmkId: 1, point: 2 }, { hyokaKmkId: 2, point: 1 }, { hyokaKmkId: 3, point: 1 }] },
-    { companyId: 1, engineerId: 2, pointInfo: [{ hyokaKmkId: 1, point: 1 }, { hyokaKmkId: 2, point: 11 }, { hyokaKmkId: 3, point: 10 }] },
-    { companyId: 2, engineerId: 1, pointInfo: [{ hyokaKmkId: 1, point: 4 }, { hyokaKmkId: 2, point: 5 }, { hyokaKmkId: 3, point: 6 }] },
-    { companyId: 3, engineerId: 1, pointInfo: [{ hyokaKmkId: 1, point: 7 }, { hyokaKmkId: 2, point: 8 }, { hyokaKmkId: 3, point: 9 }] },
+    { companyId: myCompanyId, engineerId: 1, pointInfo: [{ hyokaKmkId: 1, point: 2 }, { hyokaKmkId: 2, point: 1 }, { hyokaKmkId: 3, point: 1 }] },
+    { companyId: myCompanyId, engineerId: 2, pointInfo: [{ hyokaKmkId: 1, point: 1 }, { hyokaKmkId: 2, point: 11 }, { hyokaKmkId: 3, point: 10 }] },
   ],
 };
 
-const getParticipatingCompanies: participatingCompanies[] = [
-  { companyId: 1, companyName: '自社' },
-  { companyId: 2, companyName: '株式会社B' },
-  { companyId: 3, companyName: '株式会社C' },
-];
 
 function App() {
 
   const [displayData, setDisplayData] = useState<GridDisplayModel[]>([]);
   const [evaluationCompany, setEvaluationCompany] = useState<EvaluationCompany>(getEvaluationCompanyData);
   const [evaluationEngineer, setEvaluationEngineer] = useState<EvaluationEngineer>(getEvaluationEngineerData);
-  const [participatingCompanies, setParticipatingCompanies] = useState<participatingCompanies[]>(getParticipatingCompanies);
-  const myCompanyId = 1;
+  const [participatingCompanies, setParticipatingCompanies] = useState<participatingCompanies[]>([]);
 
   useEffect(() => {
     const mergedData: GridDisplayModel[] = participatingCompanies.map((company) => {
@@ -150,6 +142,56 @@ function App() {
 
     setDisplayData(mergedData);
   }, [evaluationCompany, evaluationEngineer, participatingCompanies]);
+
+  useEffect(() => {
+    participatingCompanies.forEach((company) => {
+      const companyId = company.companyId;
+
+      // 自社だったらスキップ
+      if (companyId === myCompanyId) return;
+
+      // companyの評価が存在しなければ追加
+      const hasCompanyEval = evaluationCompany.companies?.some(c => c.companyId === companyId);
+      if (!hasCompanyEval) {
+        setEvaluationCompany(prev => ({
+          ...prev,
+          companies: [
+            ...(prev.companies ?? []),
+            {
+              companyId,
+              pointInfo: (prev.hyokaKmk ?? []).map(kmk => ({
+                hyokaKmkId: kmk.hyokaKmkId,
+                point: undefined,
+              })),
+            },
+          ],
+        }));
+      }
+
+      // engineerの評価が存在しなければ追加（仮にengineerId: 1で最低1人追加）
+      const hasEngineerEval = evaluationEngineer.engineers?.some(e => e.companyId === companyId);
+      if (!hasEngineerEval) {
+        setEvaluationEngineer(prev => ({
+          ...prev,
+          engineers: [
+            ...(prev.engineers ?? []),
+            {
+              companyId,
+              engineerId: 1,
+              pointInfo: (prev.hyokaKmk ?? []).map(kmk => ({
+                hyokaKmkId: kmk.hyokaKmkId,
+                point: undefined,
+              })),
+            },
+          ],
+        }));
+      }
+    });
+  }, [participatingCompanies, myCompanyId]); // ← 忘れずに依存配列に追加
+
+  const addNewCompany = (newCompanyId: number, newCompanyName: string) => {
+    setParticipatingCompanies(prevCompanies => [...prevCompanies, { companyId: newCompanyId, companyName: newCompanyName }]);
+  };
 
 
   // const initialized = (control: wjcGrid.FlexGrid) => {
@@ -217,9 +259,18 @@ function App() {
     });
   };
 
+  const transposedBeginningEdit = (grid: wjcGridTransposed.TransposedGrid, e: wjcGrid.CellRangeEventArgs) => {
+    const company = grid.itemsSource[e.col];
+
+    if (company?.companyId === myCompanyId) {
+      e.cancel = true;
+    }
+  };
+
   return (
-    <div>
-      {/* <FlexGrid itemsSource={ } autoGenerateColumns={false} initialized={initialized} formatItem={formatItem} allowSorting={false}>
+    <>
+      <div>
+        {/* <FlexGrid itemsSource={ } autoGenerateColumns={false} initialized={initialized} formatItem={formatItem} allowSorting={false}>
         <FlexGridColumn header="Country" binding="country" />
         <FlexGridColumn binding="age" header="Age" />
         <FlexGridColumn binding="gender" header="Gender" />
@@ -227,18 +278,25 @@ function App() {
         <FlexGridColumn binding="pets" header="Pets" />
         <FlexGridColumn binding="income" header="Income" />
         <FlexGridColumn binding="spouse" header="Spouse" />
-      </FlexGrid> */}
+        </FlexGrid> */}
 
-      <TransposedGrid
-        itemsSource={displayData}
-        autoGenerateRows={false}
-        initialized={transposedInitialized}
-        formatItem={transposedFormatItem}
-        headersVisibility={wjcGrid.HeadersVisibility.All}
-        selectionMode={wjcGrid.SelectionMode.Cell}
-        rowGroups={getRowGroupData()}
-      />
-    </div >
+        <TransposedGrid
+          itemsSource={displayData}
+          autoGenerateRows={false}
+          initialized={transposedInitialized}
+          formatItem={transposedFormatItem}
+          headersVisibility={wjcGrid.HeadersVisibility.All}
+          selectionMode={wjcGrid.SelectionMode.Cell}
+          rowGroups={getRowGroupData()}
+          beginningEdit={transposedBeginningEdit}
+        />
+      </div >
+      <button onClick={() => addNewCompany(myCompanyId, '自社')}>自社を追加</button>
+      <button onClick={() => addNewCompany(displayData.length + 1, `企業${displayData.length + 1}`)}>
+        他社を追加
+      </button>
+      <button onClick={() => setParticipatingCompanies([])}>会社を削除</button>
+    </>
   );
 }
 
