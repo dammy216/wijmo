@@ -28,17 +28,17 @@ type CompanyHyokaKmk = {
 
 type CompanyPointInfo = {
   hyokaKmkId: number;
-  point: number;
+  point?: number;
 };
 
 type Companies = {
   companyId: number,
-  pointInfo: CompanyPointInfo[];
+  pointInfo?: CompanyPointInfo[];
 };
 
 type EvaluationCompany = {
-  hyokaKmk: CompanyHyokaKmk[],
-  companies: Companies[];
+  hyokaKmk?: CompanyHyokaKmk[],
+  companies?: Companies[];
 };
 
 //---------技術者関連-------------------------------------------------------
@@ -50,18 +50,18 @@ type EngineerHyokaKmk = {
 
 type EngineerPointInfo = {
   hyokaKmkId: number;
-  point: number;
+  point?: number;
 };
 
 type Engineers = {
   companyId: number,
-  engineerId: number,
-  pointInfo: EngineerPointInfo[];
+  engineerId?: number,
+  pointInfo?: EngineerPointInfo[];
 };
 
 type EvaluationEngineer = {
-  hyokaKmk: EngineerHyokaKmk[],
-  engineers: Engineers[];
+  hyokaKmk?: EngineerHyokaKmk[],
+  engineers?: Engineers[];
 };
 
 //---------------------データ--------------------------------------------------------
@@ -73,7 +73,7 @@ const getEvaluationCompanyData: EvaluationCompany = {
     { hyokaKmkId: 3, hyokaKmkName: '新規技術' },
   ],
   companies: [
-    { companyId: 1, pointInfo: [{ hyokaKmkId: 1, point: 1 }, { hyokaKmkId: 2, point: 2 }, { hyokaKmkId: 3, point: 3 }] },
+    { companyId: 1, pointInfo: [{ hyokaKmkId: 1, point: 8 }, { hyokaKmkId: 2, point: 2 }, { hyokaKmkId: 3, point: 3 }] },
     { companyId: 2, pointInfo: [{ hyokaKmkId: 1, point: 4 }, { hyokaKmkId: 2, point: 5 }, { hyokaKmkId: 3, point: 6 }] },
     { companyId: 3, pointInfo: [{ hyokaKmkId: 1, point: 7 }, { hyokaKmkId: 2, point: 8 }, { hyokaKmkId: 3, point: 9 }] },
   ],
@@ -86,14 +86,15 @@ const getEvaluationEngineerData: EvaluationEngineer = {
     { hyokaKmkId: 3, hyokaKmkName: '性格' },
   ],
   engineers: [
-    { companyId: 1, engineerId: 1, pointInfo: [{ hyokaKmkId: 1, point: 1 }, { hyokaKmkId: 2, point: 2 }, { hyokaKmkId: 3, point: 3 }] },
-    { companyId: 2, engineerId: 2, pointInfo: [{ hyokaKmkId: 1, point: 4 }, { hyokaKmkId: 2, point: 5 }, { hyokaKmkId: 3, point: 6 }] },
-    { companyId: 3, engineerId: 3, pointInfo: [{ hyokaKmkId: 1, point: 7 }, { hyokaKmkId: 2, point: 8 }, { hyokaKmkId: 3, point: 9 }] },
+    { companyId: 1, engineerId: 1, pointInfo: [{ hyokaKmkId: 1, point: 2 }, { hyokaKmkId: 2, point: 1 }, { hyokaKmkId: 3, point: 1 }] },
+    { companyId: 1, engineerId: 2, pointInfo: [{ hyokaKmkId: 1, point: 1 }, { hyokaKmkId: 2, point: 11 }, { hyokaKmkId: 3, point: 10 }] },
+    { companyId: 2, engineerId: 1, pointInfo: [{ hyokaKmkId: 1, point: 4 }, { hyokaKmkId: 2, point: 5 }, { hyokaKmkId: 3, point: 6 }] },
+    { companyId: 3, engineerId: 1, pointInfo: [{ hyokaKmkId: 1, point: 7 }, { hyokaKmkId: 2, point: 8 }, { hyokaKmkId: 3, point: 9 }] },
   ],
 };
 
 const getParticipatingCompanies: participatingCompanies[] = [
-  { companyId: 1, companyName: '株式会社A' },
+  { companyId: 1, companyName: '自社' },
   { companyId: 2, companyName: '株式会社B' },
   { companyId: 3, companyName: '株式会社C' },
 ];
@@ -104,37 +105,40 @@ function App() {
   const [evaluationCompany, setEvaluationCompany] = useState<EvaluationCompany>(getEvaluationCompanyData);
   const [evaluationEngineer, setEvaluationEngineer] = useState<EvaluationEngineer>(getEvaluationEngineerData);
   const [participatingCompanies, setParticipatingCompanies] = useState<participatingCompanies[]>(getParticipatingCompanies);
+  const myCompanyId = 1;
 
   useEffect(() => {
     const mergedData: GridDisplayModel[] = participatingCompanies.map((company) => {
-      //参加業者と一致する会社と技術者を格納する
-      const evalCompany = evaluationCompany.companies.find(ec => ec.companyId === company.companyId);
-      const engineers = evaluationEngineer.engineers.filter(e => e.companyId === company.companyId);
+      const evalCompany = evaluationCompany.companies?.find(ec => ec.companyId === company.companyId);
+      const engineers = evaluationEngineer.engineers?.filter(e => e.companyId === company.companyId) ?? [];
 
-      // 会社の評価点配列を作成
-      const companyPoints = evalCompany?.pointInfo.reduce((acc, info) => {
-        acc[`company_${info.hyokaKmkId}`] = info.point;
-        return acc;
-      }, {} as Record<string, number>) ?? {};
-
-      // ▼ 技術者の中で、評価項目のどれかが一番低かった人を探す
-      let targetEngineer: Engineers | undefined;
-      let minPoint = Infinity;
-
-      engineers.forEach(engineer => {
-        engineer.pointInfo.forEach(info => {
-          if (info.point < minPoint) {
-            minPoint = info.point;
-            targetEngineer = engineer;
-          }
-        });
+      // 会社の評価点
+      const companyPoints: Record<string, number> = {};
+      evaluationCompany.hyokaKmk?.forEach(kmk => {
+        const info = evalCompany?.pointInfo?.find(p => p.hyokaKmkId === kmk.hyokaKmkId);
+        if (info?.point !== undefined) {
+          companyPoints[`company_${kmk.hyokaKmkId}`] = info.point;
+        }
       });
 
-      // 評価点が一番低い技術者で評価点配列を作成
-      const engineerPoints = targetEngineer?.pointInfo.reduce((acc, info) => {
-        acc[`engineer_${info.hyokaKmkId}`] = info.point;
-        return acc;
-      }, {} as Record<string, number>) ?? {};
+      // 評価項目ごとに一番点数が低い技術者の点数を取得
+      const engineerPoints: Record<string, number> = {};
+      evaluationEngineer.hyokaKmk?.forEach(kmk => {
+        let min = Infinity;
+        let value: number | undefined = undefined;
+
+        engineers.forEach(engineer => {
+          const info = engineer.pointInfo?.find(p => p.hyokaKmkId === kmk.hyokaKmkId);
+          if (info?.point != null && info.point < min) {
+            min = info.point;
+            value = info.point;
+          }
+        });
+
+        if (value != null) {
+          engineerPoints[`engineer_${kmk.hyokaKmkId}`] = value;
+        }
+      });
 
       return {
         companyId: company.companyId,
@@ -142,11 +146,11 @@ function App() {
         ...companyPoints,
         ...engineerPoints,
       };
-
     });
 
     setDisplayData(mergedData);
   }, [evaluationCompany, evaluationEngineer, participatingCompanies]);
+
 
   // const initialized = (control: wjcGrid.FlexGrid) => {
   //   attachAutoEdit(control);
@@ -166,12 +170,12 @@ function App() {
   const getRowGroupData = () => {
     const hasData = displayData && displayData.length > 0;
 
-    const companyGroup = evaluationCompany.hyokaKmk.map(kmk => ({
+    const companyGroup = evaluationCompany.hyokaKmk?.map(kmk => ({
       binding: `company_${kmk.hyokaKmkId}`,
       header: kmk.hyokaKmkName,
     }));
 
-    const engineerGroup = evaluationEngineer.hyokaKmk.map(kmk => ({
+    const engineerGroup = evaluationEngineer.hyokaKmk?.map(kmk => ({
       binding: `engineer_${kmk.hyokaKmkId}`,
       header: kmk.hyokaKmkName,
     }));
