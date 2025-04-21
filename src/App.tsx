@@ -3,9 +3,10 @@ import '@mescius/wijmo.styles/wijmo.css';
 import * as wjcGrid from '@mescius/wijmo.grid';
 import { FlexGrid, FlexGridColumn, FlexGridColumnGroup, } from '@mescius/wijmo.react.grid';
 import { TransposedGrid, TransposedGridRow } from '@mescius/wijmo.react.grid.transposed';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import * as wjcGridTransposed from '@mescius/wijmo.grid.transposed';
 import './flexgrid.css';
+import { DataType } from '@mescius/wijmo';
 
 const myCompanyId: number = 5000;
 
@@ -98,8 +99,86 @@ function App() {
   const [evaluationCompany, setEvaluationCompany] = useState<EvaluationCompany>(getEvaluationCompanyData);
   const [evaluationEngineer, setEvaluationEngineer] = useState<EvaluationEngineer>(getEvaluationEngineerData);
   const [participatingCompanies, setParticipatingCompanies] = useState<participatingCompanies[]>([]);
+  const [companyId, setCompanyId] = useState<number>(0);
 
   useEffect(() => {
+    if (participatingCompanies && participatingCompanies.length > 0) {
+      updateDisplayData();
+      updateEvaluationData();
+    } else {
+      setDisplayData([]);
+    }
+  }, [participatingCompanies]);
+
+  useEffect(() => {
+    console.log("表示用データ（displayData）", displayData);
+  }, [displayData]);
+
+  useEffect(() => {
+    console.log("会社データ（evaluationCompany）", evaluationCompany);
+  }, [evaluationCompany]);
+
+  useEffect(() => {
+    console.log("技術者データ（evaluationEngineer）", evaluationEngineer);
+  }, [evaluationEngineer]);
+
+  const updateEvaluationData = () => {
+    // 参加企業のデータを元に新しいcompanies配列を作成
+    const newCompanies = participatingCompanies.map(company => {
+      const existing = evaluationCompany.companies?.find(c => c.companyId === company.companyId);
+      return existing ?? {
+        companyId: company.companyId,
+        pointInfo: evaluationCompany.hyokaKmk?.map(kmk => ({
+          hyokaKmkId: kmk.hyokaKmkId,
+          point: undefined,
+        })) ?? [],
+      };
+    });
+  
+    // 自社のデータは先頭に追加
+    const companiesWithMyCompany = [{
+      companyId: myCompanyId,
+      pointInfo: evaluationCompany.hyokaKmk?.map(kmk => ({
+        hyokaKmkId: kmk.hyokaKmkId,
+        point: undefined,
+      })) ?? [],
+    }, ...newCompanies];
+  
+    // 参加企業の技術者データを元に新しいengineers配列を作成
+    const newEngineers = participatingCompanies.map(company => {
+      const existing = evaluationEngineer.engineers?.find(e => e.companyId === company.companyId);
+      return existing ?? {
+        companyId: company.companyId,
+        engineerId: undefined, // 必要に応じて技術者IDを設定
+        pointInfo: evaluationEngineer.hyokaKmk?.map(kmk => ({
+          hyokaKmkId: kmk.hyokaKmkId,
+          point: undefined,
+        })) ?? [],
+      };
+    });
+  
+    // 自社の技術者データを先頭に追加
+    const engineersWithMyCompany = [{
+      companyId: myCompanyId,
+      engineerId: undefined, // 必要に応じて自社の技術者IDを設定
+      pointInfo: evaluationEngineer.hyokaKmk?.map(kmk => ({
+        hyokaKmkId: kmk.hyokaKmkId,
+        point: undefined,
+      })) ?? [],
+    }, ...newEngineers];
+  
+    setEvaluationCompany(prev => ({
+      ...prev,
+      companies: companiesWithMyCompany,
+    }));
+  
+    setEvaluationEngineer(prev => ({
+      ...prev,
+      engineers: engineersWithMyCompany,
+    }));
+  };
+
+  const updateDisplayData = () => {
     const mergedData: GridDisplayModel[] = participatingCompanies.map((company) => {
       const evalCompany = evaluationCompany.companies?.find(ec => ec.companyId === company.companyId);
       const engineers = evaluationEngineer.engineers?.filter(e => e.companyId === company.companyId) ?? [];
@@ -141,58 +220,12 @@ function App() {
     });
 
     setDisplayData(mergedData);
-  }, [evaluationCompany, evaluationEngineer, participatingCompanies]);
-
-  useEffect(() => {
-    participatingCompanies.forEach((company) => {
-      const companyId = company.companyId;
-
-      // 自社だったらスキップ
-      if (companyId === myCompanyId) return;
-
-      // companyの評価が存在しなければ追加
-      const hasCompanyEval = evaluationCompany.companies?.some(c => c.companyId === companyId);
-      if (!hasCompanyEval) {
-        setEvaluationCompany(prev => ({
-          ...prev,
-          companies: [
-            ...(prev.companies ?? []),
-            {
-              companyId,
-              pointInfo: (prev.hyokaKmk ?? []).map(kmk => ({
-                hyokaKmkId: kmk.hyokaKmkId,
-                point: undefined,
-              })),
-            },
-          ],
-        }));
-      }
-
-      // engineerの評価が存在しなければ追加（仮にengineerId: 1で最低1人追加）
-      const hasEngineerEval = evaluationEngineer.engineers?.some(e => e.companyId === companyId);
-      if (!hasEngineerEval) {
-        setEvaluationEngineer(prev => ({
-          ...prev,
-          engineers: [
-            ...(prev.engineers ?? []),
-            {
-              companyId,
-              engineerId: 1,
-              pointInfo: (prev.hyokaKmk ?? []).map(kmk => ({
-                hyokaKmkId: kmk.hyokaKmkId,
-                point: undefined,
-              })),
-            },
-          ],
-        }));
-      }
-    });
-  }, [participatingCompanies, myCompanyId]); // ← 忘れずに依存配列に追加
+  };
 
   const addNewCompany = (newCompanyId: number, newCompanyName: string) => {
     setParticipatingCompanies(prevCompanies => [...prevCompanies, { companyId: newCompanyId, companyName: newCompanyName }]);
+    setCompanyId(newCompanyId);
   };
-
 
   // const initialized = (control: wjcGrid.FlexGrid) => {
   //   attachAutoEdit(control);
@@ -215,26 +248,36 @@ function App() {
     const companyGroup = evaluationCompany.hyokaKmk?.map(kmk => ({
       binding: `company_${kmk.hyokaKmkId}`,
       header: kmk.hyokaKmkName,
+      dataType: "Number",
     }));
 
     const engineerGroup = evaluationEngineer.hyokaKmk?.map(kmk => ({
       binding: `engineer_${kmk.hyokaKmkId}`,
       header: kmk.hyokaKmkName,
+      dataType: "Number",
     }));
 
-    return [
-      {
+    const evaluationGroup = [];
+
+    if (evaluationCompany.hyokaKmk && evaluationCompany.hyokaKmk.length > 0) {
+      evaluationGroup.push({
         header: '企業の能力等',
         align: 'center',
         rows: hasData ? companyGroup : [],
-      },
-      {
+      });
+    }
+
+    if (evaluationEngineer.hyokaKmk && evaluationEngineer.hyokaKmk.length > 0) {
+      evaluationGroup.push({
         header: '技術者の能力等',
         align: 'center',
         rows: hasData ? engineerGroup : [],
-      },
-    ];
+      });
+    }
+
+    return evaluationGroup;
   };
+
 
   const transposedInitialized = (control: wjcGridTransposed.TransposedGrid) => {
     control.rowHeaders.columns[0].width = 20;
@@ -280,16 +323,18 @@ function App() {
         <FlexGridColumn binding="spouse" header="Spouse" />
         </FlexGrid> */}
 
-        <TransposedGrid
-          itemsSource={displayData}
-          autoGenerateRows={false}
-          initialized={transposedInitialized}
-          formatItem={transposedFormatItem}
-          headersVisibility={wjcGrid.HeadersVisibility.All}
-          selectionMode={wjcGrid.SelectionMode.Cell}
-          rowGroups={getRowGroupData()}
-          beginningEdit={transposedBeginningEdit}
-        />
+        {(evaluationCompany.hyokaKmk && evaluationCompany.hyokaKmk.length > 0 || evaluationEngineer.hyokaKmk && evaluationEngineer.hyokaKmk.length > 0) && (
+          <TransposedGrid
+            itemsSource={displayData}
+            autoGenerateRows={false}
+            initialized={transposedInitialized}
+            formatItem={transposedFormatItem}
+            headersVisibility={wjcGrid.HeadersVisibility.All}
+            selectionMode={wjcGrid.SelectionMode.Cell}
+            rowGroups={getRowGroupData()}
+            beginningEdit={transposedBeginningEdit}
+          />
+        )}
       </div >
       <button onClick={() => addNewCompany(myCompanyId, '自社')}>自社を追加</button>
       <button onClick={() => addNewCompany(displayData.length + 1, `企業${displayData.length + 1}`)}>
