@@ -325,6 +325,50 @@ function App() {
     }
   };
 
+  const transposedCellEditEnded = (grid: wjcGridTransposed.TransposedGrid, e: wjcGrid.CellRangeEventArgs) => {
+    const editedCompany = grid.itemsSource[e.col];
+    const editedRow = grid.rows[e.row];
+  
+    const binding = editedRow.binding; // 例: "company_1" or "engineer_2"
+    const newValue = grid.getCellData(e.row, e.col, false);
+  
+    if (binding?.startsWith('company_')) {
+      const hyokaKmkId = parseInt(binding.split('_')[1]);
+  
+      setEvaluationCompany(prev => {
+        const updatedCompanies = (prev.companies ?? []).map(company => {
+          if (company.companyId === editedCompany.companyId) {
+            const updatedPointInfo = (company.pointInfo ?? []).map(info =>
+              info.hyokaKmkId === hyokaKmkId ? { ...info, point: Number(newValue) } : info
+            );
+            return { ...company, pointInfo: updatedPointInfo };
+          }
+          return company;
+        });
+  
+        return { ...prev, companies: updatedCompanies };
+      });
+    }
+  
+    if (binding?.startsWith('engineer_')) {
+      const hyokaKmkId = parseInt(binding.split('_')[1]);
+  
+      setEvaluationEngineer(prev => {
+        const updatedEngineers = (prev.engineers ?? []).map(engineer => {
+          if (engineer.companyId === editedCompany.companyId) {
+            const updatedPointInfo = (engineer.pointInfo ?? []).map(info =>
+              info.hyokaKmkId === hyokaKmkId ? { ...info, point: Number(newValue) } : info
+            );
+            return { ...engineer, pointInfo: updatedPointInfo };
+          }
+          return engineer;
+        });
+  
+        return { ...prev, engineers: updatedEngineers };
+      });
+    }
+  };
+
   return (
     <>
       <div>
@@ -348,6 +392,7 @@ function App() {
             selectionMode={wjcGrid.SelectionMode.Cell}
             rowGroups={getRowGroupData()}
             selectionChanging={transposedSelectionChanging}
+            cellEditEnded={transposedCellEditEnded}
           />
         )}
       </div >
