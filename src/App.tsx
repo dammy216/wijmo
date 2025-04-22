@@ -123,60 +123,55 @@ function App() {
   }, [evaluationEngineer]);
 
   const updateEvaluationData = () => {
-    // 参加企業のデータを元に新しいcompanies配列を作成
-    const newCompanies = participatingCompanies.map(company => {
-      const existing = evaluationCompany.companies?.find(c => c.companyId === company.companyId);
-      return existing ?? {
-        companyId: company.companyId,
-        pointInfo: evaluationCompany.hyokaKmk?.map(kmk => ({
-          hyokaKmkId: kmk.hyokaKmkId,
-          point: undefined,
-        })) ?? [],
-      };
-    });
-  
-    // 自社のデータは先頭に追加
-    const companiesWithMyCompany = [{
-      companyId: myCompanyId,
-      pointInfo: evaluationCompany.hyokaKmk?.map(kmk => ({
-        hyokaKmkId: kmk.hyokaKmkId,
-        point: undefined,
-      })) ?? [],
-    }, ...newCompanies];
-  
-    // 参加企業の技術者データを元に新しいengineers配列を作成
-    const newEngineers = participatingCompanies.map(company => {
-      const existing = evaluationEngineer.engineers?.find(e => e.companyId === company.companyId);
-      return existing ?? {
-        companyId: company.companyId,
-        engineerId: undefined, // 必要に応じて技術者IDを設定
-        pointInfo: evaluationEngineer.hyokaKmk?.map(kmk => ({
-          hyokaKmkId: kmk.hyokaKmkId,
-          point: undefined,
-        })) ?? [],
-      };
-    });
-  
-    // 自社の技術者データを先頭に追加
-    const engineersWithMyCompany = [{
-      companyId: myCompanyId,
-      engineerId: undefined, // 必要に応じて自社の技術者IDを設定
-      pointInfo: evaluationEngineer.hyokaKmk?.map(kmk => ({
-        hyokaKmkId: kmk.hyokaKmkId,
-        point: undefined,
-      })) ?? [],
-    }, ...newEngineers];
-  
+    // 1. 他社の会社データを更新
+    const updatedCompanies = participatingCompanies
+      .filter(company => company.companyId !== myCompanyId)
+      .map(company => {
+        const existing = evaluationCompany.companies?.find(c => c.companyId === company.companyId);
+        return existing ?? {
+          companyId: company.companyId,
+          pointInfo: evaluationCompany.hyokaKmk?.map(kmk => ({
+            hyokaKmkId: kmk.hyokaKmkId,
+            point: undefined
+          })) ?? [],
+        };
+      });
+
+    // 2. 他社技術者データを更新（1社に1人）
+    const updatedEngineers = participatingCompanies
+      .filter(company => company.companyId !== myCompanyId)
+      .map(company => {
+        const existing = evaluationEngineer.engineers?.find(e => e.companyId === company.companyId);
+        return existing ?? {
+          companyId: company.companyId,
+          engineerId: undefined,
+          pointInfo: evaluationEngineer.hyokaKmk?.map(kmk => ({
+            hyokaKmkId: kmk.hyokaKmkId,
+            point: undefined
+          })) ?? [],
+        };
+      });
+
+    // 3. 状態更新（自社 + 他社） ← prevから自社だけfilterして合わせる
     setEvaluationCompany(prev => ({
       ...prev,
-      companies: companiesWithMyCompany,
+      companies: [
+        ...(prev.companies?.filter(c => c.companyId === myCompanyId) ?? []),
+        ...updatedCompanies,
+      ],
     }));
-  
+
     setEvaluationEngineer(prev => ({
       ...prev,
-      engineers: engineersWithMyCompany,
+      engineers: [
+        ...(prev.engineers?.filter(e => e.companyId === myCompanyId) ?? []),
+        ...updatedEngineers,
+      ],
     }));
   };
+
+
+
 
   const updateDisplayData = () => {
     const mergedData: GridDisplayModel[] = participatingCompanies.map((company) => {
@@ -249,12 +244,14 @@ function App() {
       binding: `company_${kmk.hyokaKmkId}`,
       header: kmk.hyokaKmkName,
       dataType: "Number",
+      align: 'center',
     }));
 
     const engineerGroup = evaluationEngineer.hyokaKmk?.map(kmk => ({
       binding: `engineer_${kmk.hyokaKmkId}`,
       header: kmk.hyokaKmkName,
       dataType: "Number",
+      align: 'center',
     }));
 
     const evaluationGroup = [];
@@ -262,7 +259,6 @@ function App() {
     if (evaluationCompany.hyokaKmk && evaluationCompany.hyokaKmk.length > 0) {
       evaluationGroup.push({
         header: '企業の能力等',
-        align: 'center',
         rows: hasData ? companyGroup : [],
       });
     }
@@ -270,7 +266,6 @@ function App() {
     if (evaluationEngineer.hyokaKmk && evaluationEngineer.hyokaKmk.length > 0) {
       evaluationGroup.push({
         header: '技術者の能力等',
-        align: 'center',
         rows: hasData ? engineerGroup : [],
       });
     }
@@ -285,6 +280,15 @@ function App() {
   };
 
   const transposedFormatItem = (control: wjcGridTransposed.TransposedGrid, e: wjcGrid.FormatItemEventArgs) => {
+    if (e.panel === control.cells) {
+      const company = control.itemsSource[e.col];
+
+      if (company?.companyId === myCompanyId) {
+        e.cell.style.backgroundColor = '#f0f0f0'; // 明るめのグレー
+        e.cell.style.color = '#474747';              // テキストも少し薄く
+      }
+    }
+
     if (e.panel == control.columnHeaders) {
       // 列ヘッダーのセルにname列の値を設定
       const rowData = control.itemsSource[e.col].companyName;
@@ -302,9 +306,20 @@ function App() {
     });
   };
 
-  const transposedBeginningEdit = (grid: wjcGridTransposed.TransposedGrid, e: wjcGrid.CellRangeEventArgs) => {
-    const company = grid.itemsSource[e.col];
+  // const transposedBeginningEdit = (grid: wjcGridTransposed.TransposedGrid, e: wjcGrid.CellRangeEventArgs) => {
+  //   const company = grid.itemsSource[e.col];
 
+  //   if (company?.companyId === myCompanyId) {
+  //     e.cancel = true;
+  //   }
+  // };
+
+  const transposedSelectionChanging = (grid: wjcGridTransposed.TransposedGrid, e: wjcGrid.CellRangeEventArgs) => {
+    if (!grid.itemsSource || e.col < 0 || e.col >= grid.itemsSource.length) {
+      return; // 無効な col の場合は何もしない
+    }
+
+    const company = grid.itemsSource[e.col];
     if (company?.companyId === myCompanyId) {
       e.cancel = true;
     }
@@ -332,7 +347,7 @@ function App() {
             headersVisibility={wjcGrid.HeadersVisibility.All}
             selectionMode={wjcGrid.SelectionMode.Cell}
             rowGroups={getRowGroupData()}
-            beginningEdit={transposedBeginningEdit}
+            selectionChanging={transposedSelectionChanging}
           />
         )}
       </div >

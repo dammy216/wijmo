@@ -4,15 +4,11 @@
   left: 50%;
 }
 
-.wj-cell.wj-align-right {
+/* .wj-cell.wj-align-left {
   text-align: center;
-}
+} */
 
-.wj-cell.wj-align-left {
-  text-align: center;
-}
-
-.wj-cell.wj-header.wj-align-center {
+.wj-cell.wj-header.wj-align-left {
   display: flex !important;  
   justify-content: center !important;
   align-items: center !important;
