@@ -442,6 +442,68 @@ function App() {
     setcelleditEnded(true);
   };
 
+  const cellEditEndedCompany = (control: wjGrid.FlexGrid, e: wjGrid.CellRangeEventArgs) => {
+    const companyTotalIndex = control.rows.length - 1;
+
+    const hyokaKmk: EvaluationPointCompanyKmkModel[] = [];
+    const companyList = evaluationPointCompany.current.companyPoint.concat();
+    const myCompanyId = props.myCompanyId; // ← これが自社ID（親から渡された想定）
+
+    // 評価項目一覧を構築
+    control.rows.forEach(row => {
+        if (row.index < companyTotalIndex) {
+            const kmk: EvaluationPointCompanyKmkModel = {
+                hyokaKmkId: row.dataItem.hyokaKmkId,
+                name: row.dataItem.hyokaKmkName,
+                order: row.dataItem.order
+            };
+            hyokaKmk.push(kmk);
+        }
+    });
+
+    // 各会社の評価点構築（myCompanyIdだけ上書き、それ以外はそのまま）
+    const companyPoint: EvaluationPointCompanyModel[] = companyList.map((company, colIndex) => {
+        if (company.companyId === myCompanyId) {
+            const newPointInfo: CompanyEvaluationPointModel[] = [];
+
+            control.rows.forEach(row => {
+                if (row.index < companyTotalIndex) {
+                    const hyokaKmkId = row.dataItem.hyokaKmkId;
+                    const point = control.getCellData(row.index, colIndex, false);
+
+                    newPointInfo.push({
+                        hyokaKmkId,
+                        point
+                    });
+                }
+            });
+
+            return {
+                companyId: company.companyId,
+                pointInfo: newPointInfo
+            };
+        } else {
+            // 他の会社は変更なしでそのまま
+            return company;
+        }
+    });
+
+    const companyInfo: EvaluationPointCompanyInfoModel = {
+        hyokaKmk: hyokaKmk,
+        companyPoint: companyPoint
+    };
+
+    setEvaluationPointCompany(companyInfo);
+
+    // 合計行計算
+    calculationTotalRow();
+
+    if (props.setIsInput) {
+        props.setIsInput(true);
+    }
+};
+
+
   return (
     <>
       <div>
