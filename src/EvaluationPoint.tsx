@@ -128,6 +128,7 @@ function EvaluationPoint(props: Props) {
     };
 
     setEvaluationEngineer(updatedEngineer);
+    props.setEvaluationPoint({ EvaluationCompany: updatedCompany, EvaluationEngineer: updatedEngineer });
   };
 
 
@@ -300,10 +301,7 @@ function EvaluationPoint(props: Props) {
 
   const attachAutoEdit = (grid: wjcGrid.FlexGrid) => {
     grid.hostElement.addEventListener('mousedown', (e: MouseEvent) => {
-      const ht = grid.hitTest(e);
-      if (ht.cellType === wjcGrid.CellType.Cell) {
         setTimeout(() => grid.startEditing(true), 50);
-      }
     });
   };
 
