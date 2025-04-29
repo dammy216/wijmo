@@ -43,7 +43,10 @@ function EvaluationPoint(props: Props) {
     props.setIsUpdateEngineer(false);
   }, [props.isUpdateEngineer]);
 
-
+  useEffect(() => {
+    props.setEvaluationPoint({ EvaluationCompany: evaluationCompany.current, EvaluationEngineer: evaluationEngineer.current });
+  }, [evaluationCompany.current, evaluationEngineer.current])
+  
   useEffect(() => {
     console.log("会社データ(evaluationCompany)", evaluationCompany.current);
   }, [evaluationCompany.current]);
@@ -144,7 +147,6 @@ function EvaluationPoint(props: Props) {
     };
 
     setEvaluationEngineer(updatedEngineer);
-    props.setEvaluationPoint({ EvaluationCompany: updatedCompany, EvaluationEngineer: updatedEngineer });
   };
 
 
@@ -295,7 +297,6 @@ function EvaluationPoint(props: Props) {
 
     setEvaluationEngineer(engineerInfo);
     setIsImportMaster(true);
-    props.setEvaluationPoint({ EvaluationCompany: companyInfo, EvaluationEngineer: engineerInfo });
   };
 
 
@@ -375,10 +376,6 @@ function EvaluationPoint(props: Props) {
     if (company?.companyId === props.myCompanyId) {
       e.cancel = true;
     }
-  };
-
-  const lostFocus = () => {
-    props.setEvaluationPoint({ EvaluationCompany: evaluationCompany.current, EvaluationEngineer: evaluationEngineer.current });
   };
 
   //これは各会社、エンジニアを更新する
@@ -483,7 +480,6 @@ function EvaluationPoint(props: Props) {
             rowGroups={getRowGroupData()}
             selectionChanging={transposedSelectionChanging}
             cellEditEnded={transposedCellEditEnded}
-            lostFocus={lostFocus}
           />
         )}
       </div >

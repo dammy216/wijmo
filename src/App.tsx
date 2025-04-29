@@ -15,8 +15,6 @@ const initData: EvaluationPointModel = {
   }
 };
 
-
-
 const myCompanyId: number = 5000;
 
 const App = () => {
