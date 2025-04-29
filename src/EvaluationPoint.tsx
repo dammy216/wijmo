@@ -5,8 +5,9 @@ import { TransposedGrid, TransposedGridRow } from '@mescius/wijmo.react.grid.tra
 import { useEffect, useMemo, useRef, useState } from 'react';
 import * as wjcGridTransposed from '@mescius/wijmo.grid.transposed';
 import './flexgrid.css';
-import { EvaluationCompanyModel, GridDisplayModel, EvaluationPointModel, EvaluationEngineerModel, participatingCompaniesModel, CompanyHyokaKmkModel, CompaniesModel, EngineerHyokaKmkModel, EngineersModel, CompanyPointInfoModel, EngineerPointInfoModel } from './type';
+import { EvaluationCompanyModel, GridDisplayModel, EvaluationPointModel, EvaluationEngineerModel, participatingCompaniesModel, CompanyHyokaKmkModel, CompaniesModel, EngineerHyokaKmkModel, EngineersModel, CompanyPointInfoModel, EngineerPointInfoModel, BidResultDisplayModel } from './type';
 import { useRefState } from './hooks/useRefState';
+import { FlexGrid, FlexGridColumn } from '@mescius/wijmo.react.grid';
 
 type Props = {
   evaluationPoint: EvaluationPointModel;
@@ -15,7 +16,10 @@ type Props = {
   participatingCompanies: participatingCompaniesModel[];
   isUpdateEngineer: boolean;
   setIsUpdateEngineer: (isUpdateEngineer: boolean) => void;
+  bidResultDisplayData: BidResultDisplayModel[];
 };
+
+
 
 function EvaluationPoint(props: Props) {
 
@@ -445,11 +449,27 @@ function EvaluationPoint(props: Props) {
 
       setEvaluationEngineer(engineerInfo);
     };
-  };
+  }
+  const initializedFlexGrid = (control: wjcGrid.FlexGrid) => {
+    attachAutoEdit(control);
+    control.rowHeaders.columns[0].width = 100;
+  }
 
+  const formatItemFlexGrid = (control: wjcGrid.FlexGrid, e: wjcGrid.FormatItemEventArgs) => {
+    if (e.panel == control.rowHeaders) {
+      // 列ヘッダーのセルにname列の値を設定
+      const rowData = control.itemsSource[e.row].companyName;
+      e.cell.innerHTML = rowData;
+    }
+  }
 
   return (
     <>
+      <h2>入札結果</h2>
+      <FlexGrid itemsSource={props.bidResultDisplayData} initialized={initializedFlexGrid} formatItem={formatItemFlexGrid} headersVisibility={wjcGrid.HeadersVisibility.All}>
+        <FlexGridColumn header="企業の能力等" binding="companyAbility" />
+        <FlexGridColumn header="技術者の能力等" binding="engineerAbility" />
+      </FlexGrid>
       <h2>総合評価点</h2>
       <div>
         {(evaluationCompany.current?.hyokaKmk && evaluationCompany.current.hyokaKmk.length > 0 || evaluationEngineer.current?.hyokaKmk && evaluationEngineer.current.hyokaKmk.length > 0) && (

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import EvaluationPoint from './EvaluationPoint';
 import MyCompanyEvaluation from './MyCompanyEvaluation';
-import { EngineerHyokaKmkModel, EngineersModel, EvaluationEngineerModel, EvaluationPointModel, participatingCompaniesModel } from './type';
+import { BidResultDisplayModel, EngineerHyokaKmkModel, EngineersModel, EvaluationEngineerModel, EvaluationPointModel, participatingCompaniesModel } from './type';
 import { useRefState } from './hooks/useRefState';
 
 const initData: EvaluationPointModel = {
@@ -15,13 +15,52 @@ const initData: EvaluationPointModel = {
   }
 };
 
+
+
 const myCompanyId: number = 5000;
 
 const App = () => {
   const [displayEvaluation, setDisplayEvaluation] = useState(false);
   const [evaluationPoint, setEvaluationPoint] = useRefState<EvaluationPointModel>(localStorage.getItem('evaluationPoint') ? JSON.parse(localStorage.getItem('evaluationPoint')!) : initData);
   const [participatingCompanies, setParticipatingCompanies] = useState<participatingCompaniesModel[]>([]);
-  const [isUpdateEngineer, setIsUpdateEngineer] = useState(false)
+  const [isUpdateEngineer, setIsUpdateEngineer] = useState(false);
+  const [bidResultDisplayData, setBidResultDisplayData] = useState<BidResultDisplayModel[]>([]);
+
+  useEffect(() => {
+    console.log("bidResultDisplayData", bidResultDisplayData);
+
+  }, [bidResultDisplayData]);
+
+  useEffect(() => {
+    const newBidResults: BidResultDisplayModel[] = participatingCompanies.map(company => {
+      const companyId = company.companyId;
+
+      // --- 会社のpointInfo合計を算出 ---
+      const companyData = evaluationPoint.current.EvaluationCompany.companies?.find(c => c.companyId === companyId);
+      const companyAbility = companyData?.pointInfo?.reduce((sum, p) => sum + (p.point ?? 0), 0) ?? 0;
+
+      // --- 技術者のpointInfo合計を算出（同じcompanyIdの技術者たち）---
+      const engineerList = evaluationPoint.current.EvaluationEngineer.engineers?.filter(e => e.companyId === companyId) ?? [];
+
+      // 各技術者ごとの合計点を出す
+      const engineerPointSums = engineerList.map(engineer =>
+        engineer.pointInfo?.reduce((sum, p) => sum + (p.point ?? 0), 0) ?? 0
+      );
+
+      // 最も点数が低い技術者の点数を取得（いなければ0）
+      const engineerAbility = engineerPointSums.length > 0 ? Math.min(...engineerPointSums) : 0;
+
+
+      return {
+        companyId: companyId,
+        companyName: company.companyName,
+        companyAbility,
+        engineerAbility
+      };
+    });
+
+    setBidResultDisplayData(newBidResults);
+  }, [evaluationPoint.current, participatingCompanies]);
 
   const addNewCompany = (newCompanyId: number, newCompanyName: string) => {
     setParticipatingCompanies(prevCompanies => [...prevCompanies, { companyId: newCompanyId, companyName: newCompanyName }]);
@@ -30,12 +69,12 @@ const App = () => {
   const addNewEngineer = () => {
     const hyokaKmkList = evaluationPoint.current.EvaluationEngineer.hyokaKmk ?? [];
     const existingEngineers = evaluationPoint.current.EvaluationEngineer.engineers ?? [];
-  
+
     const newEngineerId =
       existingEngineers.length > 0
         ? Math.max(...existingEngineers.map(e => e.engineerId ?? 0)) + 1
         : 1;
-  
+
     const newEngineer: EngineersModel = {
       companyId: myCompanyId,
       engineerId: newEngineerId,
@@ -49,7 +88,7 @@ const App = () => {
     const evaluationEngineer: EvaluationEngineerModel = {
       hyokaKmk: hyokaKmkList,
       engineers: [...existingEngineers, newEngineer]
-    }
+    };
 
     setEvaluationPoint({
       EvaluationCompany: evaluationPoint.current.EvaluationCompany,
@@ -57,7 +96,7 @@ const App = () => {
     });
     setIsUpdateEngineer(true);
   };
-  
+
 
   return (
     <div>
@@ -71,9 +110,13 @@ const App = () => {
       <button onClick={addNewEngineer}>技術者を追加</button>
       <button onClick={() => setEvaluationPoint(initData)}>技術者を削除</button>
       {displayEvaluation ?
-        <EvaluationPoint evaluationPoint={evaluationPoint.current} setEvaluationPoint={setEvaluationPoint} myCompanyId={myCompanyId} participatingCompanies={participatingCompanies} isUpdateEngineer={isUpdateEngineer} setIsUpdateEngineer={setIsUpdateEngineer}/>
+        <EvaluationPoint evaluationPoint={evaluationPoint.current} setEvaluationPoint={setEvaluationPoint}
+          myCompanyId={myCompanyId}
+          participatingCompanies={participatingCompanies}
+          isUpdateEngineer={isUpdateEngineer} setIsUpdateEngineer={setIsUpdateEngineer}
+          bidResultDisplayData={bidResultDisplayData} />
         :
-        <MyCompanyEvaluation evaluationPoint={evaluationPoint.current} setEvaluationPoint={setEvaluationPoint} myCompanyId={myCompanyId} isUpdateEngineer={isUpdateEngineer} setIsUpdateEngineer={setIsUpdateEngineer}/>}
+        <MyCompanyEvaluation evaluationPoint={evaluationPoint.current} setEvaluationPoint={setEvaluationPoint} myCompanyId={myCompanyId} isUpdateEngineer={isUpdateEngineer} setIsUpdateEngineer={setIsUpdateEngineer} />}
     </div>
   );
 };

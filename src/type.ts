@@ -5,6 +5,13 @@ export type GridDisplayModel = {
   [key: string]: number | string;
 };
 
+export type BidResultDisplayModel = {
+  companyId: number;
+  companyName: string;
+  companyAbility: number;
+  engineerAbility: number;
+};
+
 export type participatingCompaniesModel = {
   companyId: number,
   companyName: string,
