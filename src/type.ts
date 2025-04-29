@@ -24,6 +24,7 @@ export type CompanyHyokaKmkModel = {
 };
 
 export type CompanyPointInfoModel = {
+  engineerId?: number;
   hyokaKmkId: number;
   point?: number;
 };

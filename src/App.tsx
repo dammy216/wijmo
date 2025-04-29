@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import EvaluationPoint from './EvaluationPoint';
 import MyCompanyEvaluation from './MyCompanyEvaluation';
-import { EvaluationPointModel, participatingCompaniesModel } from './type';
+import { EngineerHyokaKmkModel, EngineersModel, EvaluationEngineerModel, EvaluationPointModel, participatingCompaniesModel } from './type';
 import { useRefState } from './hooks/useRefState';
 
 const initData: EvaluationPointModel = {
@@ -21,10 +21,43 @@ const App = () => {
   const [displayEvaluation, setDisplayEvaluation] = useState(false);
   const [evaluationPoint, setEvaluationPoint] = useRefState<EvaluationPointModel>(localStorage.getItem('evaluationPoint') ? JSON.parse(localStorage.getItem('evaluationPoint')!) : initData);
   const [participatingCompanies, setParticipatingCompanies] = useState<participatingCompaniesModel[]>([]);
+  const [isUpdateEngineer, setIsUpdateEngineer] = useState(false)
 
   const addNewCompany = (newCompanyId: number, newCompanyName: string) => {
     setParticipatingCompanies(prevCompanies => [...prevCompanies, { companyId: newCompanyId, companyName: newCompanyName }]);
   };
+
+  const addNewEngineer = () => {
+    const hyokaKmkList = evaluationPoint.current.EvaluationEngineer.hyokaKmk ?? [];
+    const existingEngineers = evaluationPoint.current.EvaluationEngineer.engineers ?? [];
+  
+    const newEngineerId =
+      existingEngineers.length > 0
+        ? Math.max(...existingEngineers.map(e => e.engineerId ?? 0)) + 1
+        : 1;
+  
+    const newEngineer: EngineersModel = {
+      companyId: myCompanyId,
+      engineerId: newEngineerId,
+      engineerName: `技術者${newEngineerId}`,
+      pointInfo: hyokaKmkList.map(item => ({
+        hyokaKmkId: item.hyokaKmkId,
+        point: undefined // 初期は未入力としておく
+      }))
+    };
+
+    const evaluationEngineer: EvaluationEngineerModel = {
+      hyokaKmk: hyokaKmkList,
+      engineers: [...existingEngineers, newEngineer]
+    }
+
+    setEvaluationPoint({
+      EvaluationCompany: evaluationPoint.current.EvaluationCompany,
+      EvaluationEngineer: evaluationEngineer
+    });
+    setIsUpdateEngineer(true);
+  };
+  
 
   return (
     <div>
@@ -35,10 +68,12 @@ const App = () => {
       <button onClick={() => addNewCompany(myCompanyId, '自社')}>自社を追加</button>
       <button onClick={() => addNewCompany(participatingCompanies.length + 1, `企業${participatingCompanies.length + 1}`)}>他社を追加</button>
       <button onClick={() => setParticipatingCompanies([])}>会社を削除</button>
+      <button onClick={addNewEngineer}>技術者を追加</button>
+      <button onClick={() => setEvaluationPoint(initData)}>技術者を削除</button>
       {displayEvaluation ?
-        <EvaluationPoint evaluationPoint={evaluationPoint.current} setEvaluationPoint={setEvaluationPoint} myCompanyId={myCompanyId} participatingCompanies={participatingCompanies} />
+        <EvaluationPoint evaluationPoint={evaluationPoint.current} setEvaluationPoint={setEvaluationPoint} myCompanyId={myCompanyId} participatingCompanies={participatingCompanies} isUpdateEngineer={isUpdateEngineer} setIsUpdateEngineer={setIsUpdateEngineer}/>
         :
-        <MyCompanyEvaluation evaluationPoint={evaluationPoint.current} setEvaluationPoint={setEvaluationPoint} myCompanyId={myCompanyId} />}
+        <MyCompanyEvaluation evaluationPoint={evaluationPoint.current} setEvaluationPoint={setEvaluationPoint} myCompanyId={myCompanyId} isUpdateEngineer={isUpdateEngineer} setIsUpdateEngineer={setIsUpdateEngineer}/>}
     </div>
   );
 };

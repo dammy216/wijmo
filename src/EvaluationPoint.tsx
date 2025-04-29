@@ -5,7 +5,7 @@ import { TransposedGrid, TransposedGridRow } from '@mescius/wijmo.react.grid.tra
 import { useEffect, useMemo, useRef, useState } from 'react';
 import * as wjcGridTransposed from '@mescius/wijmo.grid.transposed';
 import './flexgrid.css';
-import { EvaluationCompanyModel, GridDisplayModel, EvaluationPointModel, EvaluationEngineerModel, participatingCompaniesModel, CompanyHyokaKmkModel, CompaniesModel, EngineerHyokaKmkModel, EngineersModel } from './type';
+import { EvaluationCompanyModel, GridDisplayModel, EvaluationPointModel, EvaluationEngineerModel, participatingCompaniesModel, CompanyHyokaKmkModel, CompaniesModel, EngineerHyokaKmkModel, EngineersModel, CompanyPointInfoModel, EngineerPointInfoModel } from './type';
 import { useRefState } from './hooks/useRefState';
 
 type Props = {
@@ -13,6 +13,8 @@ type Props = {
   setEvaluationPoint: (evaluationPoint: EvaluationPointModel) => void;
   myCompanyId: number;
   participatingCompanies: participatingCompaniesModel[];
+  isUpdateEngineer: boolean;
+  setIsUpdateEngineer: (isUpdateEngineer: boolean) => void;
 };
 
 function EvaluationPoint(props: Props) {
@@ -27,6 +29,16 @@ function EvaluationPoint(props: Props) {
     setEvaluationEngineer(props.evaluationPoint?.EvaluationEngineer);
     updateGridData();
   }, []);
+
+  useEffect(() => {
+    if (props.isUpdateEngineer) {
+
+      setEvaluationEngineer(props.evaluationPoint?.EvaluationEngineer);
+      updateGridData();
+    }
+    props.setIsUpdateEngineer(false);
+  }, [props.isUpdateEngineer]);
+
 
   useEffect(() => {
     console.log("会社データ(evaluationCompany)", evaluationCompany.current);
@@ -44,9 +56,9 @@ function EvaluationPoint(props: Props) {
   useEffect(() => {
     console.log("参加業者データ(participatingCompanies)", props.participatingCompanies);
 
+    updateParticipationData();
     if (props.participatingCompanies && props.participatingCompanies.length > 0) {
       updateGridData();
-      updateParticipationData();
     } else {
       setDisplayData([]);
     }
@@ -57,7 +69,7 @@ function EvaluationPoint(props: Props) {
       updateGridData();
     }
     setIsImportMaster(false);
-  }, [isImportMaster])
+  }, [isImportMaster]);
 
   const updateParticipationData = () => {
     // --- Company 更新
@@ -179,65 +191,110 @@ function EvaluationPoint(props: Props) {
   };
 
 
-  const addMyCompanyData = () => {
-    const getEvaluationCompanyData: EvaluationCompanyModel = {
-      hyokaKmk: [
-        { hyokaKmkId: 1, hyokaKmkName: '施工実績' },
-        { hyokaKmkId: 2, hyokaKmkName: '騒音等' },
-        { hyokaKmkId: 3, hyokaKmkName: '新規技術' },
+  const actionOKOverwrapMaster = () => {
+
+    const masterItem = {
+      companyItems: [
+        { id: 1, name: '施工実績' },
+        { id: 2, name: '騒音等' },
+        { id: 3, name: '新規技術' },
       ],
-      companies: [
-        {
-          companyId: props.myCompanyId,
-          pointInfo: [
-            { hyokaKmkId: 1, point: undefined },
-            { hyokaKmkId: 2, point: undefined },
-            { hyokaKmkId: 3, point: undefined }
-          ]
-        },
-      ],
+      engineerItems: [
+        { id: 1, name: '容姿' },
+        { id: 2, name: '偏差値' },
+        { id: 3, name: '性格' },
+      ]
+    };
+    //マスターから取得した項目を評価項目に設定 
+    const companyListKmk: CompanyHyokaKmkModel[] = masterItem.companyItems.map((kmk) => {
+      const item: CompanyHyokaKmkModel = {
+        hyokaKmkId: kmk.id,
+        hyokaKmkName: kmk.name,
+      };
+
+      return item;
+    });
+
+    // 企業にマスターから取り込んだ評価項目を設定 
+    let companyPoint: CompaniesModel[] = [];
+    if (evaluationCompany.current.companies && evaluationCompany.current.companies.length > 0) {
+      companyPoint = evaluationCompany.current.companies.map(company => {
+        const pointInfo: CompanyPointInfoModel[] = companyListKmk.map(kmk => ({
+          hyokaKmkId: kmk.hyokaKmkId,
+          point: undefined,
+        }));
+
+        return {
+          companyId: company.companyId,
+          pointInfo: pointInfo,
+        };
+      });
+    }
+
+    // 企業に自社が存在しない場合、新しい配列を作成して追加 
+    if (!companyPoint.some(company => company.companyId === props.myCompanyId)) {
+      const newCompanyPoint: CompaniesModel = {
+        companyId: props.myCompanyId,
+        pointInfo: companyListKmk.map(kmk => ({
+          hyokaKmkId: kmk.hyokaKmkId,
+          point: undefined,
+        })),
+
+      };
+
+      companyPoint.unshift(newCompanyPoint);
+    }
+
+
+
+    const companyInfo: EvaluationCompanyModel = {
+      hyokaKmk: companyListKmk,
+      companies: companyPoint
     };
 
-    const getEvaluationEngineerData: EvaluationEngineerModel = {
-      hyokaKmk: [
-        { hyokaKmkId: 1, hyokaKmkName: '容姿' },
-        { hyokaKmkId: 2, hyokaKmkName: '偏差値' },
-        { hyokaKmkId: 3, hyokaKmkName: '性格' },
-      ],
-      engineers: [
-        {
-          companyId: props.myCompanyId,
-          engineerId: 1,
-          engineerName: "エンジニア1", // ★←これも必要なら追加
-          pointInfo: [
-            { hyokaKmkId: 1, point: undefined },
-            { hyokaKmkId: 2, point: undefined },
-            { hyokaKmkId: 3, point: undefined }
-          ]
-        },
-        {
-          companyId: props.myCompanyId,
-          engineerId: 2,
-          engineerName: "エンジニア2", // ★
-          pointInfo: [
-            { hyokaKmkId: 1, point: undefined },
-            { hyokaKmkId: 2, point: undefined },
-            { hyokaKmkId: 3, point: undefined }
-          ]
-        },
-      ],
+    setEvaluationCompany(companyInfo);
+
+
+    // 技術者 
+    const engineerListKmk: EngineerHyokaKmkModel[] = masterItem.engineerItems.map((kmk) => {
+      const item: EngineerHyokaKmkModel = {
+        hyokaKmkId: kmk.id,
+        hyokaKmkName: kmk.name,
+      };
+
+      return item;
+    });
+
+    // 技術者にマスターから取り込んだ評価項目を設定
+    let engineerPoint: EngineersModel[] = [];
+    if (evaluationEngineer.current.engineers && evaluationEngineer.current.engineers.length > 0) {
+      engineerPoint = evaluationEngineer.current.engineers.map(engineer => {
+        const pointInfo: CompanyPointInfoModel[] = engineerListKmk.map(kmk => ({
+          engineerId: engineer.engineerId,
+          hyokaKmkId: kmk.hyokaKmkId,
+          point: undefined,
+        }));
+
+        return {
+          companyId: engineer.companyId,
+          engineerId: engineer.engineerId,
+          engineerName: engineer.engineerName,
+          pointInfo: pointInfo,
+        };
+      });
+    }
+
+    const engineerInfo: EvaluationEngineerModel = {
+      hyokaKmk: engineerListKmk,
+      engineers: engineerPoint
     };
 
-    const getEvaluationPoint: EvaluationPointModel = {
-      EvaluationCompany: getEvaluationCompanyData,
-      EvaluationEngineer: getEvaluationEngineerData
-    };
-
+    setEvaluationEngineer(engineerInfo);
     setIsImportMaster(true);
-    props.setEvaluationPoint(getEvaluationPoint);
-    setEvaluationCompany(getEvaluationCompanyData);
-    setEvaluationEngineer(getEvaluationEngineerData);
+    props.setEvaluationPoint({ EvaluationCompany: companyInfo, EvaluationEngineer: engineerInfo });
   };
+
+
 
   //TransposedGrid関連
   const getRowGroupData = () => {
@@ -301,7 +358,7 @@ function EvaluationPoint(props: Props) {
 
   const attachAutoEdit = (grid: wjcGrid.FlexGrid) => {
     grid.hostElement.addEventListener('mousedown', (e: MouseEvent) => {
-        setTimeout(() => grid.startEditing(true), 50);
+      setTimeout(() => grid.startEditing(true), 50);
     });
   };
 
@@ -318,7 +375,7 @@ function EvaluationPoint(props: Props) {
 
   const lostFocus = () => {
     props.setEvaluationPoint({ EvaluationCompany: evaluationCompany.current, EvaluationEngineer: evaluationEngineer.current });
-  }
+  };
 
   //これは各会社、エンジニアを更新する
   const transposedCellEditEnded = (control: wjcGridTransposed.TransposedGrid, e: wjcGrid.CellRangeEventArgs) => {
@@ -411,7 +468,7 @@ function EvaluationPoint(props: Props) {
         )}
       </div >
 
-      <button onClick={() => addMyCompanyData()}>項目を設定</button>
+      <button onClick={() => actionOKOverwrapMaster()}>項目を設定</button>
     </>
   );
 };
