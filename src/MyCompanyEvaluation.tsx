@@ -139,7 +139,8 @@ const MyCompanyEvaluation = (props: Props) => {
 
   const cellEditEndedCompany = (control: wjcGrid.FlexGrid, e: wjcGrid.CellRangeEventArgs) => {
     const editedRow = control.rows[e.row];
-    const newValue = control.getCellData(e.row, e.col, false);
+    const newValueRaw = control.getCellData(e.row, e.col, false);
+    const newValue = newValueRaw === '' || newValueRaw == null ? undefined : Number(newValueRaw);
     const hyokaKmk: CompanyHyokaKmkModel[] = evaluationCompany.current?.hyokaKmk ?? [];
 
     const updatedCompanyPoint: CompaniesModel[] = evaluationCompany.current?.companies?.map((company) => {
@@ -314,11 +315,11 @@ const MyCompanyEvaluation = (props: Props) => {
         <TransposedGrid itemsSource={displayCompanyGrid} autoGenerateRows={false} initialized={initializedCompany} cellEditEnded={cellEditEndedCompany} lostFocus={lostFocus}>
           {
             evaluationCompany.current?.hyokaKmk?.map(kmk => (
-              <TransposedGridRow binding={`${kmk.hyokaKmkId}`} header={kmk.hyokaKmkName} dataType="Number" align="center" />
+              <TransposedGridRow binding={`${kmk.hyokaKmkId}`} header={kmk.hyokaKmkName} dataType="Number" align="center" isRequired={false} />
             ))
           }
         </TransposedGrid>
-        <TransposedGrid itemsSource={displayEngineerGrid} autoGenerateRows={false} initialized={initializedEngineer} formatItem={formatItem} cellEditEnded={cellEditEndedEngineer} lostFocus={lostFocus} headersVisibility={wjcGrid.HeadersVisibility.All}>
+        <TransposedGrid itemsSource={displayEngineerGrid} autoGenerateRows={false} initialized={initializedEngineer} formatItem={formatItem} cellEditEnded={cellEditEndedEngineer} lostFocus={lostFocus} headersVisibility={evaluationEngineer.current.engineers?.filter((engineer) => engineer.companyId === props.myCompanyId).length === 0 ? wjcGrid.HeadersVisibility.None : wjcGrid.HeadersVisibility.All}>
           {
             evaluationEngineer.current?.hyokaKmk?.map(kmk => (
               <TransposedGridRow binding={`${kmk.hyokaKmkId}`} header={kmk.hyokaKmkName} dataType="Number" align="center" />

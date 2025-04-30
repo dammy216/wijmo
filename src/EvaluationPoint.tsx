@@ -45,8 +45,8 @@ function EvaluationPoint(props: Props) {
 
   useEffect(() => {
     props.setEvaluationPoint({ EvaluationCompany: evaluationCompany.current, EvaluationEngineer: evaluationEngineer.current });
-  }, [evaluationCompany.current, evaluationEngineer.current])
-  
+  }, [evaluationCompany.current, evaluationEngineer.current]);
+
   useEffect(() => {
     console.log("会社データ(evaluationCompany)", evaluationCompany.current);
   }, [evaluationCompany.current]);
@@ -309,6 +309,7 @@ function EvaluationPoint(props: Props) {
       header: kmk.hyokaKmkName,
       dataType: "Number",
       align: 'center',
+      isRequired: false,
     }));
 
     const engineerGroup = evaluationEngineer.current?.hyokaKmk?.map(kmk => ({
@@ -316,6 +317,7 @@ function EvaluationPoint(props: Props) {
       header: kmk.hyokaKmkName,
       dataType: "Number",
       align: 'center',
+      isRequired: false
     }));
 
     const evaluationGroup = [];
@@ -367,7 +369,7 @@ function EvaluationPoint(props: Props) {
     });
   };
 
-  const transposedSelectionChanging = (grid: wjcGridTransposed.TransposedGrid, e: wjcGrid.CellRangeEventArgs) => {
+  const transposedBeginningEdit = (grid: wjcGridTransposed.TransposedGrid, e: wjcGrid.CellRangeEventArgs) => {
     if (!grid.itemsSource || e.col < 0 || e.col >= grid.itemsSource.length) {
       return; // 無効な col の場合は何もしない
     }
@@ -446,11 +448,11 @@ function EvaluationPoint(props: Props) {
 
       setEvaluationEngineer(engineerInfo);
     };
-  }
+  };
   const initializedFlexGrid = (control: wjcGrid.FlexGrid) => {
     attachAutoEdit(control);
     control.rowHeaders.columns[0].width = 100;
-  }
+  };
 
   const formatItemFlexGrid = (control: wjcGrid.FlexGrid, e: wjcGrid.FormatItemEventArgs) => {
     if (e.panel == control.rowHeaders) {
@@ -458,7 +460,7 @@ function EvaluationPoint(props: Props) {
       const rowData = control.itemsSource[e.row].companyName;
       e.cell.innerHTML = rowData;
     }
-  }
+  };
 
   return (
     <>
@@ -471,15 +473,18 @@ function EvaluationPoint(props: Props) {
       <div>
         {(evaluationCompany.current?.hyokaKmk && evaluationCompany.current.hyokaKmk.length > 0 || evaluationEngineer.current?.hyokaKmk && evaluationEngineer.current.hyokaKmk.length > 0) && (
           <TransposedGrid
+          className='transposedGrid'
             itemsSource={displayData}
             autoGenerateRows={false}
             initialized={transposedInitialized}
             formatItem={transposedFormatItem}
-            headersVisibility={wjcGrid.HeadersVisibility.All}
+            headersVisibility={(evaluationCompany.current?.hyokaKmk?.length! > 0 || evaluationEngineer?.current?.hyokaKmk?.length! > 0) ? wjcGrid.HeadersVisibility.All : wjcGrid.HeadersVisibility.None}
             selectionMode={wjcGrid.SelectionMode.Cell}
             rowGroups={getRowGroupData()}
-            selectionChanging={transposedSelectionChanging}
+            beginningEdit={transposedBeginningEdit}
             cellEditEnded={transposedCellEditEnded}
+            keyActionTab={wjcGrid.KeyAction.Cycle}
+            keyActionEnter={wjcGrid.KeyAction.Cycle}
           />
         )}
       </div >
