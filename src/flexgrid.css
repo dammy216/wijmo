@@ -13,3 +13,7 @@
   justify-content: center !important;
   align-items: center !important;
 }
+
+.transposedGrid{
+  height: 150px;
+}

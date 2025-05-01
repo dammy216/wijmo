@@ -204,11 +204,19 @@ function EvaluationPoint(props: Props) {
         { id: 1, name: '施工実績' },
         { id: 2, name: '騒音等' },
         { id: 3, name: '新規技術' },
+        { id: 4, name: '技術力' },
+        { id: 5, name: '技術性' },
+        { id: 6, name: '技術的性' },
+        { id: 7, name: '技術的性' },
       ],
       engineerItems: [
         { id: 1, name: '容姿' },
         { id: 2, name: '偏差値' },
         { id: 3, name: '性格' },
+        { id: 4, name: '技術力' },
+        { id: 5, name: '技術性' },
+        { id: 6, name: '技術的性' },
+        { id: 7, name: '技術的性' },
       ]
     };
     //マスターから取得した項目を評価項目に設定 
@@ -449,6 +457,7 @@ function EvaluationPoint(props: Props) {
       setEvaluationEngineer(engineerInfo);
     };
   };
+  
   const initializedFlexGrid = (control: wjcGrid.FlexGrid) => {
     attachAutoEdit(control);
     control.rowHeaders.columns[0].width = 100;

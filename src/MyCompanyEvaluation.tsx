@@ -212,11 +212,29 @@ const MyCompanyEvaluation = (props: Props) => {
         { id: 1, name: '施工実績' },
         { id: 2, name: '騒音等' },
         { id: 3, name: '新規技術' },
+        { id: 4, name: '技術力' },
+        { id: 5, name: '技術性' },
+        { id: 6, name: '技術的性' },
+        { id: 7, name: '技術的性' },
+        { id: 8, name: '技術的性' },
+        { id: 9, name: '技術的性' },
+        { id: 10, name: '技術的性' },
+        { id: 11, name: '技術的性' },
+        { id: 12, name: '技術的性' },
       ],
       engineerItems: [
         { id: 1, name: '容姿' },
         { id: 2, name: '偏差値' },
         { id: 3, name: '性格' },
+        { id: 4, name: '技術力' },
+        { id: 5, name: '技術性' },
+        { id: 6, name: '技術的性' },
+        { id: 7, name: '技術的性' },
+        { id: 8, name: '技術的性' },
+        { id: 9, name: '技術的性' },
+        { id: 10, name: '技術的性' },
+        { id: 11, name: '技術的性' },
+        { id: 12, name: '技術的性' },
       ]
     };
     //マスターから取得した項目を評価項目に設定 
@@ -312,7 +330,7 @@ const MyCompanyEvaluation = (props: Props) => {
     <>
       <h2>自社</h2>
       <div>
-        <TransposedGrid itemsSource={displayCompanyGrid} autoGenerateRows={false} initialized={initializedCompany} cellEditEnded={cellEditEndedCompany} lostFocus={lostFocus}>
+        <TransposedGrid className="transposedGrid" itemsSource={displayCompanyGrid} autoGenerateRows={false} initialized={initializedCompany} cellEditEnded={cellEditEndedCompany} lostFocus={lostFocus}>
           {
             evaluationCompany.current?.hyokaKmk?.map(kmk => (
               <TransposedGridRow binding={`${kmk.hyokaKmkId}`} header={kmk.hyokaKmkName} dataType="Number" align="center" isRequired={false} />
