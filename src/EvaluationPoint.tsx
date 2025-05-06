@@ -310,8 +310,7 @@ function EvaluationPoint(props: Props) {
 
 
   //TransposedGrid関連
-  const getRowGroupData = () => {
-
+  const getRowGroupData = useMemo(() => {
     const companyGroup = evaluationCompany.current?.hyokaKmk?.map(kmk => ({
       binding: `company_${kmk.hyokaKmkId}`,
       header: kmk.hyokaKmkName,
@@ -330,14 +329,14 @@ function EvaluationPoint(props: Props) {
 
     const evaluationGroup = [];
 
-    if (evaluationCompany.current?.hyokaKmk && evaluationCompany.current.hyokaKmk.length > 0) {
+    if (companyGroup?.length) {
       evaluationGroup.push({
         header: '企業の能力等',
         rows: companyGroup,
       });
     }
 
-    if (evaluationEngineer.current?.hyokaKmk && evaluationEngineer.current.hyokaKmk.length > 0) {
+    if (engineerGroup?.length) {
       evaluationGroup.push({
         header: '技術者の能力等',
         rows: engineerGroup,
@@ -345,7 +344,10 @@ function EvaluationPoint(props: Props) {
     }
 
     return evaluationGroup;
-  };
+  }, [
+    evaluationCompany.current?.hyokaKmk,
+    evaluationEngineer.current?.hyokaKmk
+  ]);
 
 
   const transposedInitialized = (control: wjcGridTransposed.TransposedGrid) => {
@@ -457,7 +459,7 @@ function EvaluationPoint(props: Props) {
       setEvaluationEngineer(engineerInfo);
     };
   };
-  
+
   const initializedFlexGrid = (control: wjcGrid.FlexGrid) => {
     attachAutoEdit(control);
     control.rowHeaders.columns[0].width = 100;
@@ -482,14 +484,14 @@ function EvaluationPoint(props: Props) {
       <div>
         {(evaluationCompany.current?.hyokaKmk && evaluationCompany.current.hyokaKmk.length > 0 || evaluationEngineer.current?.hyokaKmk && evaluationEngineer.current.hyokaKmk.length > 0) && (
           <TransposedGrid
-          className='transposedGrid'
+            className='transposedGrid'
             itemsSource={displayData}
             autoGenerateRows={false}
             initialized={transposedInitialized}
             formatItem={transposedFormatItem}
             headersVisibility={(evaluationCompany.current?.hyokaKmk?.length! > 0 || evaluationEngineer?.current?.hyokaKmk?.length! > 0) ? wjcGrid.HeadersVisibility.All : wjcGrid.HeadersVisibility.None}
             selectionMode={wjcGrid.SelectionMode.Cell}
-            rowGroups={getRowGroupData()}
+            rowGroups={getRowGroupData}
             beginningEdit={transposedBeginningEdit}
             cellEditEnded={transposedCellEditEnded}
             keyActionTab={wjcGrid.KeyAction.Cycle}
