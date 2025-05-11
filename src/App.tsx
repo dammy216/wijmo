@@ -23,6 +23,7 @@ const App = () => {
   const [participatingCompanies, setParticipatingCompanies] = useState<participatingCompaniesModel[]>([]);
   const [isUpdateEngineer, setIsUpdateEngineer] = useState(false);
   const [bidResultDisplayData, setBidResultDisplayData] = useState<BidResultDisplayModel[]>([]);
+  const [isEvaluationPointInputSelf, setIsEvaluationPointInputSelf] = useState<boolean>(false);
 
   useEffect(() => {
     console.log("bidResultDisplayData", bidResultDisplayData);
@@ -32,33 +33,35 @@ const App = () => {
   useEffect(() => {
     const newBidResults: BidResultDisplayModel[] = participatingCompanies.map(company => {
       const companyId = company.companyId;
+      const prev = bidResultDisplayData.find(b => b.companyId === companyId);
 
-      // --- 会社のpointInfo合計を算出 ---
-      const companyData = evaluationPoint.current.EvaluationCompany.companies?.find(c => c.companyId === companyId);
-      const companyAbility = companyData?.pointInfo?.reduce((sum, p) => sum + (p.point ?? 0), 0) ?? 0;
+      // --- 自動計算 or 手入力の値を選択（会社能力） ---
+      let companyAbility = prev?.companyAbility ?? 0;
+      if (isEvaluationPointInputSelf) {
+        const companyData = evaluationPoint.current.EvaluationCompany.companies?.find(c => c.companyId === companyId);
+        companyAbility = companyData?.pointInfo?.reduce((sum, p) => sum + (p.point ?? 0), 0) ?? 0;
+      }
 
-      // --- 技術者のpointInfo合計を算出（同じcompanyIdの技術者たち）---
-      const engineerList = evaluationPoint.current.EvaluationEngineer.engineers?.filter(e => e.companyId === companyId) ?? [];
-
-      // 各技術者ごとの合計点を出す
-      const engineerPointSums = engineerList.map(engineer =>
-        engineer.pointInfo?.reduce((sum, p) => sum + (p.point ?? 0), 0) ?? 0
-      );
-
-      // 最も点数が低い技術者の点数を取得（いなければ0）
-      const engineerAbility = engineerPointSums.length > 0 ? Math.min(...engineerPointSums) : 0;
-
+      // --- 自動計算 or 手入力の値を選択（技術者能力） ---
+      let engineerAbility = prev?.engineerAbility ?? 0;
+      if (isEvaluationPointInputSelf) {
+        const engineerList = evaluationPoint.current.EvaluationEngineer.engineers?.filter(e => e.companyId === companyId) ?? [];
+        const engineerPointSums = engineerList.map(engineer =>
+          engineer.pointInfo?.reduce((sum, p) => sum + (p.point ?? 0), 0) ?? 0
+        );
+        engineerAbility = engineerPointSums.length > 0 ? Math.min(...engineerPointSums) : 0;
+      }
 
       return {
         companyId: companyId,
         companyName: company.companyName,
         companyAbility,
-        engineerAbility
+        engineerAbility,
       };
     });
 
     setBidResultDisplayData(newBidResults);
-  }, [evaluationPoint.current, participatingCompanies]);
+  }, [evaluationPoint.current]);
 
   const addNewCompany = (newCompanyId: number, newCompanyName: string) => {
     setParticipatingCompanies(prevCompanies => [...prevCompanies, { companyId: newCompanyId, companyName: newCompanyName }]);
@@ -112,7 +115,8 @@ const App = () => {
           myCompanyId={myCompanyId}
           participatingCompanies={participatingCompanies}
           isUpdateEngineer={isUpdateEngineer} setIsUpdateEngineer={setIsUpdateEngineer}
-          bidResultDisplayData={bidResultDisplayData} />
+          bidResultDisplayData={bidResultDisplayData}
+          setIsEvaluationPointInputSelf={setIsEvaluationPointInputSelf} />
         :
         <MyCompanyEvaluation evaluationPoint={evaluationPoint.current} setEvaluationPoint={setEvaluationPoint} myCompanyId={myCompanyId} isUpdateEngineer={isUpdateEngineer} setIsUpdateEngineer={setIsUpdateEngineer} />}
     </div>

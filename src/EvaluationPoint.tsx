@@ -17,6 +17,7 @@ type Props = {
   isUpdateEngineer: boolean;
   setIsUpdateEngineer: (isUpdateEngineer: boolean) => void;
   bidResultDisplayData: BidResultDisplayModel[];
+  setIsEvaluationPointInputSelf: (isEvaluationPointInputSelf: boolean) => void;
 };
 
 
@@ -27,6 +28,7 @@ function EvaluationPoint(props: Props) {
   const [evaluationCompany, setEvaluationCompany] = useRefState<EvaluationCompanyModel>(props.evaluationPoint?.EvaluationCompany);
   const [evaluationEngineer, setEvaluationEngineer] = useRefState<EvaluationEngineerModel>(props.evaluationPoint?.EvaluationEngineer);
   const [isImportMaster, setIsImportMaster] = useState(false);
+  const [evaluationOldValue, setEvaluationOldValue] = useRefState(null);
 
   useEffect(() => {
     setEvaluationCompany(props.evaluationPoint?.EvaluationCompany);
@@ -390,6 +392,10 @@ function EvaluationPoint(props: Props) {
     }
   };
 
+  const transposedCellEditEnding = (control: wjcGridTransposed.TransposedGrid, e: wjcGrid.CellRangeEventArgs) => {
+    setEvaluationOldValue(control.getCellData(e.row, e.col, false));
+  };
+
   //これは各会社、エンジニアを更新する
   const transposedCellEditEnded = (control: wjcGridTransposed.TransposedGrid, e: wjcGrid.CellRangeEventArgs) => {
     const editedCompany: CompaniesModel = control.itemsSource[e.col];
@@ -458,6 +464,10 @@ function EvaluationPoint(props: Props) {
 
       setEvaluationEngineer(engineerInfo);
     };
+
+    if (evaluationOldValue.current !== newValue) {
+      props.setIsEvaluationPointInputSelf(true);
+    }
   };
 
   const initializedFlexGrid = (control: wjcGrid.FlexGrid) => {
@@ -473,12 +483,16 @@ function EvaluationPoint(props: Props) {
     }
   };
 
+  const cellEditEndedFlexGrid = (control: wjcGrid.FlexGrid, e: wjcGrid.CellRangeEventArgs) => {
+    props.setIsEvaluationPointInputSelf(false);
+  };
+
   return (
     <>
       <h2>入札結果</h2>
-      <FlexGrid itemsSource={props.bidResultDisplayData} initialized={initializedFlexGrid} formatItem={formatItemFlexGrid} headersVisibility={wjcGrid.HeadersVisibility.All}>
-        <FlexGridColumn header="企業の能力等" binding="companyAbility" />
-        <FlexGridColumn header="技術者の能力等" binding="engineerAbility" />
+      <FlexGrid itemsSource={props.bidResultDisplayData} initialized={initializedFlexGrid} formatItem={formatItemFlexGrid} cellEditEnded={cellEditEndedFlexGrid} headersVisibility={wjcGrid.HeadersVisibility.All}>
+        <FlexGridColumn header="企業の能力等" binding="companyAbility" isRequired={false} />
+        <FlexGridColumn header="技術者の能力等" binding="engineerAbility" isRequired={false} />
       </FlexGrid>
       <h2>総合評価点</h2>
       <div>
@@ -493,6 +507,7 @@ function EvaluationPoint(props: Props) {
             selectionMode={wjcGrid.SelectionMode.Cell}
             rowGroups={getRowGroupData}
             beginningEdit={transposedBeginningEdit}
+            cellEditEnding={transposedCellEditEnding}
             cellEditEnded={transposedCellEditEnded}
             keyActionTab={wjcGrid.KeyAction.Cycle}
             keyActionEnter={wjcGrid.KeyAction.Cycle}
